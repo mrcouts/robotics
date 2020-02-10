@@ -7,19 +7,22 @@ class Serial:
         self.l_ = l_
         self.lg_ = lg_
         self.m_ = m_
-        self.Ir__ = I__
+        self.Il__ = I__
         self.gamma_ = Zeros(3,1)
         self.gamma_ = gamma_
         self.fDH = fDH
         
         self.q_ = Zeros(dof,1)
         self.dq_ = Zeros(dof,1)
-        self.Hr__  = [ Zeros(4,4) for i in range(dof) ]
-        self.H__  = [ Zeros(4,4) for i in range(dof) ]
-        self.gr__  = [ Zeros(3,1) for i in range(dof) ]
-        self.g__  = [ Zeros(3,1) for i in range(dof) ]
-        self.z__  = [ Zeros(3,1) for i in range(dof) ]
+        self.rql__  = [ Zeros(4,1) for i in range(dof) ]
+        self.rq__  = [ Zeros(4,1) for i in range(dof) ]
+        self.ol__  = [ Zeros(3,1) for i in range(dof) ]
         self.o__  = [ Zeros(3,1) for i in range(dof) ]
+        self.Rl__  = [ Zeros(4,4) for i in range(dof) ]
+        self.R__  = [ Zeros(4,4) for i in range(dof) ]
+        self.cml__  = [ Zeros(3,1) for i in range(dof) ]
+        self.cm__  = [ Zeros(3,1) for i in range(dof) ]
+        self.k__  = [ Zeros(3,1) for i in range(dof) ]
         self.jw__  = [ Zeros(3,1) for i in range(dof) ]
         self.jv__  = [ Zeros(3,1) for i in range(dof) ]
         self.Jw__  = [ Zeros(3,dof) for i in range(dof) ]
@@ -43,38 +46,43 @@ class Serial:
         
     def doit_q_(self, q_):
         self.q_ = q_
-        fDH_mat = fDH_RR(self.q_, self.l_, self.lg_)
+        fDH_mat = self.fDH(self.q_, self.l_, self.lg_)
         
         for i in range(self.dof):
-            self.gr__[i] = (fDH_mat[i,4:7]).T
-            self.Hr__[i] = DH(*((fDH_mat[i,:4]).tolist())[0])
+            self.cml__[i] = (fDH_mat[i,4:7]).T
+            self.rql__[i] = DH2rql_(*((fDH_mat[i,:4]).tolist())[0])
+            self.ol__[i] = DH2ol_(*((fDH_mat[i,:4]).tolist())[0])
         
-        self.H__[0] = self.Hr__[0]        
+        self.rq__[0] = self.rql__[0]
+        self.R__[0] = qq2R_(self.rq__[0])
+        self.o__[0] = self.ol__[0]
         for i in range(1,self.dof):
-            self.H__[i] = self.H__[i-1]*self.Hr__[i]
+            self.rq__[i] = quat_prod(self.rq__[i-1],self.rql__[i])
+            self.R__[i] = qq2R_(self.rq__[i])
+            self.o__[i] = self.o__[i-1] + self.R__[i-1]*self.ol__[i]
             
         for i in range(self.dof):
-            self.g__[i] = (self.H__[i]*vec2h_(self.gr__[i]))[:3,0]
-            self.z__[i] = self.H__[i][:3,2]
-            self.o__[i] = self.H__[i][:3,3]
-            self.I__[i] = self.H__[i][:3,:3]*self.Ir__[i]*self.H__[i][:3,:3].T
+            self.cm__[i] = self.o__[i] + self.R__[i]*self.cml__[i] #(self.H__[i]*vec2h_(self.cml__[i]))[:3,0]
+            self.k__[i] = self.R__[i][:3,2]
+#            self.o__[i] = self.H__[i][:3,3]
+            self.I__[i] = self.R__[i]*self.Il__[i]*self.R__[i].T
             
-        self.x_ = self.o__[self.dof-1]
+        self.x_ = self.o__[-1]
             
         o0_ = Zeros(3,1)
-        z0_  = ZerosOne(2,3)            
-        self.jw__[0] = Zeros(3,1) if fDH_mat[0,7]==False else z0_
-        self.jv__[0] = z0_ if fDH_mat[0,7]==False else S_(z0_)*(self.g__[0] - o0_)
-        self.Jw__[0] = self.jw__[0]*ZerosOne(0,self.dof).T
-        self.Jv__[0] = self.jv__[0]*ZerosOne(0,self.dof).T
+        k0_  = ZerosOne_(2,3)            
+        self.jw__[0] = Zeros(3,1) if fDH_mat[0,7]==False else k0_
+        self.jv__[0] = k0_ if fDH_mat[0,7]==False else S_(k0_)*(self.cm__[0] - o0_)
+        self.Jw__[0] = self.jw__[0]*ZerosOne_(0,self.dof).T
+        self.Jv__[0] = self.jv__[0]*ZerosOne_(0,self.dof).T
         for i in range(1,self.dof):
-            self.jw__[i] = Zeros(3,1) if fDH_mat[i,7]==False else self.z__[i-1]
-            self.jv__[i] = self.z__[i-1] if fDH_mat[i,7]==False else S_(self.z__[i-1])*(self.g__[i] - self.o__[i-1])
-            self.Jw__[i] = self.Jw__[i-1] + self.jw__[i]*ZerosOne(i,self.dof).T
-            self.Jv__[i] = self.Jv__[i-1] - S_(self.g__[i] - self.g__[i-1])*self.Jw__[i-1]  + self.jv__[i]*ZerosOne(i,self.dof).T
+            self.jw__[i] = Zeros(3,1) if fDH_mat[i,7]==False else self.k__[i-1]
+            self.jv__[i] = self.k__[i-1] if fDH_mat[i,7]==False else S_(self.k__[i-1])*(self.cm__[i] - self.o__[i-1])
+            self.Jw__[i] = self.Jw__[i-1] + self.jw__[i]*ZerosOne_(i,self.dof).T
+            self.Jv__[i] = self.Jv__[i-1] - S_(self.cm__[i] - self.cm__[i-1])*self.Jw__[i-1]  + self.jv__[i]*ZerosOne_(i,self.dof).T
             
-        self.Jw_ = self.Jw__[self.dof-1]
-        self.Jv_ = self.Jv__[self.dof-1] - S_(self.x_ - self.g__[self.dof-1])*self.Jw__[self.dof-1]
+        self.Jw_ = self.Jw__[-1]
+        self.Jv_ = self.Jv__[-1] - S_(self.x_ - self.cm__[-1])*self.Jw__[-1]
         
         self.M_ = Zeros(self.dof,self.dof)
         self.g_ = Zeros(self.dof,1)            
@@ -96,10 +104,10 @@ class Serial:
         for i in range(1,self.dof):
             self.w__[i] = self.w__[i-1] + self.wrel__[i]
             self.alphatil__[i] = self.alphatil__[i-1] + S_(self.w__[i-1])*self.wrel__[i]
-            self.atil__[i] = self.atil__[i-1] + (S_(self.alphatil__[i-1]) + S2_(self.w__[i-1]))*(self.g__[i] - self.g__[i-1]) + (S_(self.wrel__[i]) + 2*S_(self.w__[i-1]))*self.vrel__[i]
+            self.atil__[i] = self.atil__[i-1] + (S_(self.alphatil__[i-1]) + S2_(self.w__[i-1]))*(self.cm__[i] - self.cm__[i-1]) + (S_(self.wrel__[i]) + 2*S_(self.w__[i-1]))*self.vrel__[i]
             
-        self.alphatil_ = self.alphatil__[self.dof-1]
-        self.atil_ = self.atil__[self.dof-1] + (S_(self.alphatil__[self.dof-1]) + S2_(self.w__[self.dof-1]))*(self.x_ - self.g__[self.dof-1])
+        self.alphatil_ = self.alphatil__[-1]
+        self.atil_ = self.atil__[-1] + (S_(self.alphatil__[-1]) + S2_(self.w__[-1]))*(self.x_ - self.cm__[-1])
         
         self.v_ = Zeros(self.dof,1)
         for i in range(self.dof):

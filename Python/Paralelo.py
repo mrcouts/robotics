@@ -12,7 +12,7 @@ class EfetuadorTranslacional:
         self.dof = self.transdof
         self.q_ = Zeros(self.dof,1)
         self.dq_ = Zeros(self.dof,1)
-        self.R_ = EulerAngles_(a,b,c)
+        self.R_ = EulerAngles2R_(a,b,c)
         self.M_ = m*Eye(self.dof)
         self.v_ = Zeros(self.dof,1)
         self.g_ = -m*gamma_[0:self.dof,0]
@@ -44,9 +44,9 @@ class Paralelo:
         self.atil_ = Zeros(EndEffector.transdof*self.n,1)
         self.A_ = Zeros(EndEffector.transdof*self.n, self.nq)
         self.b_ = Zeros(EndEffector.transdof*self.n, 1)
-        self.Qh_ = Qh_Qo_(lista_ind, self.nq)[0]
-        self.Qo_ = Qh_Qo_(lista_ind, self.nq)[1]
-        self.U_ = Qh_Qo_(lista_actuator, self.nq)[0]
+        self.Qh_ = Qh_Qo__(lista_ind, self.nq)[0]
+        self.Qo_ = Qh_Qo__(lista_ind, self.nq)[1]
+        self.U_ = Qh_Qo__(lista_actuator, self.nq)[0]
         self.Ah_ = Zeros(EndEffector.transdof*self.n, dof)
         self.Ao_ = Zeros(EndEffector.transdof*self.n, self.nq - dof)
         self.C_ = Zeros(self.nq, dof)
@@ -73,7 +73,7 @@ class Paralelo:
         self.qbarnorm_ = []
         
         for i in range(self.n):
-            self.R__[i] = EulerAngles_(*(angulos__[i].T.tolist()[0]))[0:EndEffector.transdof,:]
+            self.R__[i] = EulerAngles2R_(*(angulos__[i].T.tolist()[0]))[0:EndEffector.transdof,:]
             
         self.D_ = np.vstack([ Eye(EndEffector.transdof) for i in range(self.n) ])
         self.E_ = np.matrix(block_diag(*self.R__))
