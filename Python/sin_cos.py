@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import matplotlib.pyplot as plt
 import numpy as np
-from math import pi as Pi
+from math import pi
+from math import floor
+from numpy import sign
 from txt2py import *
 
 A = txt2py("sin_cos.txt")
@@ -24,9 +26,9 @@ def Sin(x):
         x = x - 2*pi*(x//(2*pi))
     indice = x/dx
     i1 = int(floor(indice))
-    i2 = int(ceil(indice))
-    Sin1 = SIN[i1]
-    Sin2 = SIN[i2]
+    i2 = i1+1
+    Sin1 = sin_np[i1]
+    Sin2 = sin_np[i2]
     return SIGN*(Sin1 + (indice-i1)*(Sin2 - Sin1))
     
 def Cos(x):
@@ -36,7 +38,7 @@ def Cos(x):
         x = x - 2*pi*(x//(2*pi))
     indice = x/dx
     i1 = int(floor(indice))
-    i2 = int(ceil(indice))
-    Cos1 = COS[i1]
-    Cos2 = COS[i2]
+    i2 = i1+1
+    Cos1 = cos_np[i1]
+    Cos2 = cos_np[i2]
     return Cos1 + (indice-i1)*(Cos2 - Cos1)

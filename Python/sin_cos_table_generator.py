@@ -5,7 +5,7 @@ from math import pi
 
 x0 = 0.0
 xf = 2*pi
-n = 10000000
+n = 100000
 
 X = [x0 + i*(xf-x0)/(n-1) for i in range(n)] 
 SIN = [sin(x) for x in X]
