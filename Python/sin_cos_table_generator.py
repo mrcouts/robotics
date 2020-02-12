@@ -5,20 +5,17 @@ from math import pi
 
 x0 = 0.0
 xf = 2*pi
-n = 10
+n = 10000000
 
-SIN = [sin(x0 + i*(xf-x0)/(n-1)) for i in range(n)]
-COS = [cos(x0 + i*(xf-x0)/(n-1)) for i in range(n)]
+X = [x0 + i*(xf-x0)/(n-1) for i in range(n)] 
+SIN = [sin(x) for x in X]
+COS = [cos(x) for x in X]
 
-f1 = open("sin.txt", "w")
-f2 = open("cos.txt", "w")
+f = open("sin_cos.txt", "w")
 
-for i in range(n-1):
-    f1.write("%f \n" % SIN[i])
-    f2.write("%f \n" % COS[i])
-    
-f1.write("%f" % SIN[n-1])
-f2.write("%f" % COS[n-1])
+for i in range(n):
+    f.write("%.50f; " % X[i])
+    f.write("%.50f; " % SIN[i])
+    f.write("%.50f;\n" % COS[i])
 
-f1.close()
-f2.close()
+f.close()
